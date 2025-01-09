@@ -36,13 +36,13 @@ function checkValidation() {
         warning.id = 'validation-warning';
         warning.className = 'warning';
         warning.innerHTML = `
-            <strong>Warning:</strong> Interacted People (${interactedPeople.toLocaleString()}) 
-            cannot exceed Unified People (${unifiedPeople.toLocaleString()}). 
-            Please adjust your values.
+            <strong>Warning!</strong> Your current selection of ${interactedPeople.toLocaleString()} Interacted People 
+            exceeds your ${unifiedPeople.toLocaleString()} Unified People. 
+            Please reduce Interacted People or increase Unified People.
         `;
         
-        const interactedSlider = document.getElementById('interactedValue');
-        interactedSlider.parentNode.insertBefore(warning, interactedSlider.nextSibling);
+        const interactedValue = document.getElementById('interactedValue');
+        interactedValue.insertAdjacentElement('afterend', warning);
     }
 }
 
