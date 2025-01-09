@@ -54,6 +54,16 @@ input[type="range"] {
     font-weight: 500;
 }
 
+.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-left: 4px solid #ffc107;
+    padding: 12px;
+    margin-top: 10px;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
 .suggestions {
     background: #ebf8ff;
 }
@@ -64,21 +74,6 @@ input[type="range"] {
     background: white;
     border-radius: 5px;
     border-left: 4px solid #4299e1;
-}
-
-.warning {
-    background-color: #fff3cd;
-    color: #856404;
-    border-left: 4px solid #856404;
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 5px;
-}
-
-.hint {
-    color: #666;
-    font-size: 0.9em;
-    margin-top: 5px;
 }
 
 .pricing {
