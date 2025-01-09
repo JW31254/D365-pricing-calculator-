@@ -14,14 +14,37 @@ document.querySelectorAll('input[name="license"]').forEach(radio => {
 document.getElementById('unifiedSlider').addEventListener('input', (e) => {
     unifiedPeople = parseInt(e.target.value);
     document.getElementById('unifiedValue').textContent = `${unifiedPeople.toLocaleString()} people`;
+    checkValidation();
     updateCalculations();
 });
 
 document.getElementById('interactedSlider').addEventListener('input', (e) => {
     interactedPeople = parseInt(e.target.value);
     document.getElementById('interactedValue').textContent = `${interactedPeople.toLocaleString()} people`;
+    checkValidation();
     updateCalculations();
 });
+
+function checkValidation() {
+    const existingWarning = document.getElementById('validation-warning');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
+
+    if (interactedPeople > unifiedPeople) {
+        const warning = document.createElement('div');
+        warning.id = 'validation-warning';
+        warning.className = 'warning';
+        warning.innerHTML = `
+            <strong>Warning:</strong> Interacted People (${interactedPeople.toLocaleString()}) 
+            cannot exceed Unified People (${unifiedPeople.toLocaleString()}). 
+            Please adjust your values.
+        `;
+        
+        const interactedSlider = document.getElementById('interactedValue');
+        interactedSlider.parentNode.insertBefore(warning, interactedSlider.nextSibling);
+    }
+}
 
 function calculateUnifiedCost(totalPeople) {
     if (totalPeople <= 100000) return { cost: 0, packs: 0, packSize: 100000, pricePerPack: 0 };
