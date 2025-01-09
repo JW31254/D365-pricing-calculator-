@@ -68,7 +68,6 @@ function calculateInteractedCost(totalPeople) {
     };
 }
 
-
 function findOptimizations() {
     const optimizations = [];
 
@@ -80,52 +79,61 @@ function findOptimizations() {
     // Unified People optimizations
     const currentUnifiedCost = calculateUnifiedCost(unifiedPeople).cost;
 
-    // Check if upgrading to Tier 2 would be cheaper
     if (unifiedPeople > 100000) {
-        // Calculate how many packs would be needed at current tier
-        const currentTierPacks = Math.ceil((unifiedPeople - 100000) / 100000);
-        
+        // Check Tier 2
         if (unifiedPeople <= 500000) {
-            // Calculate cost at minimum Tier 2 level
-            const tier2Cost = Math.ceil((500001 - 100000) / 100000) * 1232.90;
-            if (tier2Cost < currentUnifiedCost) {
-                optimizations.push(`Consider increasing to 500,001 Unified People to use Tier 2 pricing (£1,232.90 per pack). This would reduce your Unified People cost from £${currentUnifiedCost.toFixed(2)} to £${tier2Cost.toFixed(2)}.`);
+            const currentPacks = Math.ceil((unifiedPeople - 100000) / 100000);
+            const currentCost = currentPacks * 1643.90;
+            const tier2Packs = Math.ceil((500001 - 100000) / 100000);
+            const tier2Cost = tier2Packs * 1232.90;
+
+            if (tier2Cost < currentCost) {
+                optimizations.push(`Consider increasing to 500,001 Unified People to use Tier 2 pricing. This would reduce your Unified People cost from £${currentCost.toFixed(2)} to £${tier2Cost.toFixed(2)}.`);
             }
         }
 
-        // Check if Tier 3 would be cheaper
+        // Check Tier 3
         if (unifiedPeople <= 2000000) {
-            const tier3Cost = Math.ceil((2000001 - 100000) / 100000) * 821.90;
-            if (tier3Cost < currentUnifiedCost) {
-                optimizations.push(`Consider increasing to 2,000,001 Unified People to use Tier 3 pricing (£821.90 per pack). This would reduce your Unified People cost from £${currentUnifiedCost.toFixed(2)} to £${tier3Cost.toFixed(2)}.`);
+            const currentPacks = Math.ceil((unifiedPeople - 100000) / 100000);
+            const currentCost = unifiedPeople <= 500000 
+                ? currentPacks * 1643.90 
+                : currentPacks * 1232.90;
+            const tier3Packs = Math.ceil((2000001 - 100000) / 100000);
+            const tier3Cost = tier3Packs * 821.90;
+
+            if (tier3Cost < currentCost) {
+                optimizations.push(`Consider increasing to 2,000,001 Unified People to use Tier 3 pricing. This would reduce your Unified People cost from £${currentCost.toFixed(2)} to £${tier3Cost.toFixed(2)}.`);
             }
         }
     }
 
     // Interacted People optimizations
-    const currentInteractedCost = calculateInteractedCost(interactedPeople).cost;
-
     if (interactedPeople > 10000) {
-        // Check if upgrading to Tier 2 would be cheaper
+        // Check Tier 2
         if (interactedPeople <= 50000) {
-            const currentTierCost = Math.ceil((interactedPeople - 10000) / 5000) * 205.50;
-            const tier2Cost = Math.ceil((50001 - 10000) / 10000) * 246.60;
-            
-            if (tier2Cost < currentTierCost) {
-                optimizations.push(`Consider increasing to 50,001 Interacted People to use Tier 2 pricing (£246.60 per 10,000). This would reduce your Interacted People cost from £${currentTierCost.toFixed(2)} to £${tier2Cost.toFixed(2)}.`);
+            const currentPacks = Math.ceil((interactedPeople - 10000) / 5000);
+            const currentCost = currentPacks * 205.50;
+            const tier2Packs = Math.ceil((50001 - 10000) / 10000);
+            const tier2Cost = tier2Packs * 246.60;
+
+            if (tier2Cost < currentCost) {
+                optimizations.push(`Consider increasing to 50,001 Interacted People to use Tier 2 pricing. This would reduce your Interacted People cost from £${currentCost.toFixed(2)} to £${tier2Cost.toFixed(2)}.`);
             }
         }
 
-        // Check if Tier 3 would be cheaper
+        // Check Tier 3
         if (interactedPeople <= 250000) {
-            const currentTierCost = interactedPeople <= 50000 
-                ? Math.ceil((interactedPeople - 10000) / 5000) * 205.50
-                : Math.ceil((interactedPeople - 10000) / 10000) * 246.60;
-            
-            const tier3Cost = Math.ceil((250001 - 10000) / 50000) * 411.00;
-            
-            if (tier3Cost < currentTierCost) {
-                optimizations.push(`Consider increasing to 250,001 Interacted People to use Tier 3 pricing (£411.00 per 50,000). This would reduce your Interacted People cost from £${currentTierCost.toFixed(2)} to £${tier3Cost.toFixed(2)}.`);
+            const currentPacks = interactedPeople <= 50000 
+                ? Math.ceil((interactedPeople - 10000) / 5000)
+                : Math.ceil((interactedPeople - 10000) / 10000);
+            const currentCost = interactedPeople <= 50000 
+                ? currentPacks * 205.50
+                : currentPacks * 246.60;
+            const tier3Packs = Math.ceil((250001 - 10000) / 50000);
+            const tier3Cost = tier3Packs * 411.00;
+
+            if (tier3Cost < currentCost) {
+                optimizations.push(`Consider increasing to 250,001 Interacted People to use Tier 3 pricing. This would reduce your Interacted People cost from £${currentCost.toFixed(2)} to £${tier3Cost.toFixed(2)}.`);
             }
         }
     }
@@ -165,9 +173,17 @@ function updateCalculations() {
 
     // Update optimizations
     const optimizations = findOptimizations();
-    document.getElementById('optimizations').innerHTML = optimizations.length > 0 
-        ? '<h2>Optimization Suggestions</h2>' + optimizations.map(opt => `<div class="suggestion">${opt}</div>`).join('')
-        : '';
+    const optimizationsElement = document.getElementById('optimizations');
+    
+    if (optimizations.length > 0) {
+        optimizationsElement.innerHTML = `
+            <h2>Optimization Suggestions</h2>
+            ${optimizations.map(opt => `<div class="suggestion">${opt}</div>`).join('')}
+        `;
+        optimizationsElement.style.display = 'block';
+    } else {
+        optimizationsElement.style.display = 'none';
+    }
 }
 
 // Initial calculation
