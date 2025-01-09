@@ -68,9 +68,9 @@ function calculateInteractedCost(totalPeople) {
     };
 }
 
+
 function findOptimizations() {
     const optimizations = [];
-    const baseCost = licenseType === 'standard' ? 1397.30 : 821.90;
 
     // License optimization
     if (licenseType === 'standard') {
@@ -78,19 +78,55 @@ function findOptimizations() {
     }
 
     // Unified People optimizations
-    if (unifiedPeople > 100000 && unifiedPeople <= 500000) {
-        const currentCost = calculateUnifiedCost(unifiedPeople).cost;
-        const potentialCost = calculateUnifiedCost(500001).cost;
-        if (potentialCost < currentCost) {
-            optimizations.push(`Increasing to 500,001 Unified People would reduce costs from £${currentCost.toFixed(2)} to £${potentialCost.toFixed(2)} using Tier 2 pricing.`);
+    const currentUnifiedCost = calculateUnifiedCost(unifiedPeople).cost;
+
+    // Check if upgrading to Tier 2 would be cheaper
+    if (unifiedPeople > 100000) {
+        // Calculate how many packs would be needed at current tier
+        const currentTierPacks = Math.ceil((unifiedPeople - 100000) / 100000);
+        
+        if (unifiedPeople <= 500000) {
+            // Calculate cost at minimum Tier 2 level
+            const tier2Cost = Math.ceil((500001 - 100000) / 100000) * 1232.90;
+            if (tier2Cost < currentUnifiedCost) {
+                optimizations.push(`Consider increasing to 500,001 Unified People to use Tier 2 pricing (£1,232.90 per pack). This would reduce your Unified People cost from £${currentUnifiedCost.toFixed(2)} to £${tier2Cost.toFixed(2)}.`);
+            }
+        }
+
+        // Check if Tier 3 would be cheaper
+        if (unifiedPeople <= 2000000) {
+            const tier3Cost = Math.ceil((2000001 - 100000) / 100000) * 821.90;
+            if (tier3Cost < currentUnifiedCost) {
+                optimizations.push(`Consider increasing to 2,000,001 Unified People to use Tier 3 pricing (£821.90 per pack). This would reduce your Unified People cost from £${currentUnifiedCost.toFixed(2)} to £${tier3Cost.toFixed(2)}.`);
+            }
         }
     }
 
-    if (unifiedPeople <= 2000000) {
-        const currentCost = calculateUnifiedCost(unifiedPeople).cost;
-        const potentialCost = calculateUnifiedCost(2000001).cost;
-        if (potentialCost < currentCost) {
-            optimizations.push(`Increasing to 2,000,001 Unified People would reduce costs from £${currentCost.toFixed(2)} to £${potentialCost.toFixed(2)} using Tier 3 pricing.`);
+    // Interacted People optimizations
+    const currentInteractedCost = calculateInteractedCost(interactedPeople).cost;
+
+    if (interactedPeople > 10000) {
+        // Check if upgrading to Tier 2 would be cheaper
+        if (interactedPeople <= 50000) {
+            const currentTierCost = Math.ceil((interactedPeople - 10000) / 5000) * 205.50;
+            const tier2Cost = Math.ceil((50001 - 10000) / 10000) * 246.60;
+            
+            if (tier2Cost < currentTierCost) {
+                optimizations.push(`Consider increasing to 50,001 Interacted People to use Tier 2 pricing (£246.60 per 10,000). This would reduce your Interacted People cost from £${currentTierCost.toFixed(2)} to £${tier2Cost.toFixed(2)}.`);
+            }
+        }
+
+        // Check if Tier 3 would be cheaper
+        if (interactedPeople <= 250000) {
+            const currentTierCost = interactedPeople <= 50000 
+                ? Math.ceil((interactedPeople - 10000) / 5000) * 205.50
+                : Math.ceil((interactedPeople - 10000) / 10000) * 246.60;
+            
+            const tier3Cost = Math.ceil((250001 - 10000) / 50000) * 411.00;
+            
+            if (tier3Cost < currentTierCost) {
+                optimizations.push(`Consider increasing to 250,001 Interacted People to use Tier 3 pricing (£411.00 per 50,000). This would reduce your Interacted People cost from £${currentTierCost.toFixed(2)} to £${tier3Cost.toFixed(2)}.`);
+            }
         }
     }
 
