@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern D365 Pricing Calculators</title>
+    <style>
+        /* --- Modern Base & Theme --- */
+        :root {
+            --bg-dark: #111827; /* Dark blue-grey */
+            --bg-card: rgba(31, 41, 55, 0.6); /* Semi-transparent card bg */
+            --border-color: rgba(75, 85, 99, 0.6); /* Grey border */
+            --text-primary: #f3f4f6; /* Light grey text */
+            --text-secondary: #9ca3af; /* Medium grey text */
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-teal: #14b8a6;
+            --accent-red: #ef4444;
+            --accent-green: #22c55e;
+            --hover-bg-card: rgba(55, 65, 81, 0.7);
+
+            --mouse-x: 50%; /* Default mouse position */
+            --mouse-y: 50%;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-dark);
+            /* Dynamic Gradient Background */
+             background-image: radial-gradient(
+                800px circle at var(--mouse-x) var(--mouse-y),
+                rgba(59, 130, 246, 0.1), /* Accent Blue subtle */
+                transparent 40%
+            ), radial-gradient(
+                1200px circle at calc(100% - var(--mouse-x)) calc(100% - var(--mouse-y)),
+                rgba(139, 92, 246, 0.1), /* Accent Purple subtle */
+                transparent 50%
+            );
+            background-attachment: fixed; /* Keep gradient fixed */
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 30px 20px;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+            transition: background 0.2s linear; /* Smooth bg transition (optional) */
+        }
+
+        .app-container { /* New wrapper for max-width and centering */
+             max-width: 850px;
+             margin: 20px auto;
+        }
+
+        /* --- Page Section Transitions --- */
+        .page-section {
+            width: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s ease-in-out, visibility 0s linear 0.4s;
+            position: absolute; /* Needed for smooth fade */
+            left: 0;
+            right: 0;
+            padding: 0 20px; /* Add padding to match body */
+            margin: 0 auto; /* Center within viewport */
+             max-width: 850px; /* Match app-container width */
+        }
+
+        .page-section.active {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.4s ease-in-out;
+            position: relative; /* Take up space when active */
+        }
+
+        /* --- Typography --- */
+        h1, h2, h3 {
+            color: var(--text-primary);
+            margin-bottom: 0.75em;
+            font-weight: 600;
+        }
+        h1 { font-size: 2.25rem; text-align: center; margin-bottom: 1em; }
+        h2 { font-size: 1.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4em; }
+        h3 { font-size: 1.1rem; color: var(--text-secondary); font-weight: 500; }
+
+        p { color: var(--text-secondary); margin-bottom: 1em; }
+        strong { color: var(--text-primary); font-weight: 600; }
+
+        /* --- Card Styling (Glassmorphism) --- */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px); /* The frosted glass effect */
+            -webkit-backdrop-filter: blur(10px); /* Safari */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.15);
+            background: var(--hover-bg-card);
+        }
+
+        /* --- Specific Card Styles --- */
+        .pricing {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3)); /* Gradient overlay */
+             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 102, 241, 0.5);
+        }
+        .pricing h2, .pricing h3 { color: var(--text-primary); border-bottom: none; }
+        .pricing .note { color: rgba(243, 244, 246, 0.8); }
+        .pricing .breakdown { border-top: 1px solid rgba(243, 244, 246, 0.2); }
+        .pricing .total-price { font-size: 2.5rem; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+
+        .suggestions {
+            background: rgba(20, 184, 166, 0.1); /* Teal accent */
+            border-left: 4px solid var(--accent-teal);
+        }
+        .suggestion {
+            background: rgba(55, 65, 81, 0.6); /* Slightly darker inner card */
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .example-box {
+            background-color: rgba(59, 130, 246, 0.1); /* Blue accent */
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+        .example-box h3 { color: var(--accent-blue); }
+
+        .config-card {
+            background-color: rgba(55, 65, 81, 0.5);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+        }
+
+        .m365-option {
+            background-color: rgba(20, 184, 166, 0.15); /* Teal background */
+            border: 1px solid rgba(20, 184, 166, 0.4);
+            border-radius: 8px; padding: 15px; margin-top: 15px;
+        }
+        .m365-option label { font-weight: 500 !important; } /* Override */
+
+
+        /* --- Form Elements --- */
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+            cursor: pointer;
+            accent-color: var(--accent-blue); /* Modern color for slider */
+            background: transparent; /* Needed for custom track styling */
+            height: 20px; /* Make clickable area taller */
+            -webkit-appearance: none;
+        }
+        /* --- Custom Range Slider Track --- */
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%; height: 6px;
+            background: rgba(75, 85, 99, 0.5); /* Track color */
+            border-radius: 3px;
+        }
+        input[type="range"]::-moz-range-track {
+             width: 100%; height: 6px;
+            background: rgba(75, 85, 99, 0.5);
+            border-radius: 3px;
+        }
+         /* --- Custom Range Slider Thumb --- */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; /* Override default */
+            appearance: none;
+            margin-top: -7px; /* Center thumb on track */
+            width: 20px; height: 20px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            border: 2px solid var(--bg-dark); /* Border matching background */
+            cursor: pointer;
+        }
+         input[type="range"]::-moz-range-thumb {
+             width: 16px; height: 16px; /* Slightly smaller for consistency */
+            background: var(--accent-blue);
+            border-radius: 50%;
+            border: 2px solid var(--bg-dark);
+            cursor: pointer;
+        }
+
+
+        input[type="number"], input[type="text"], input[type="email"] /* Style other inputs potentially */ {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: rgba(55, 65, 81, 0.8); /* Input background */
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        input[type="number"]:focus, input[type="text"]:focus, input[type="email"]:focus {
+            border-color: var(--accent-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+         /* Style number input arrows (webkit) */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] { -moz-appearance: textfield; } /* Firefox */
+
+
+        .slider-value {
+            color: var(--accent-blue);
+            font-weight: 600;
+            text-align: right;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+
+        .radio-group, .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .radio-group label, .checkbox-group label {
+            display: flex; align-items: center; gap: 10px;
+            cursor: pointer; font-weight: normal; color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+        input[type="radio"], input[type="checkbox"] {
+            width: 1.1em; height: 1.1em;
+            accent-color: var(--accent-purple); /* Use purple for selection */
+             cursor: pointer;
+             margin-top: -2px; /* Align better */
+        }
+        input[type="checkbox"]#m365Users { /* Specific checkbox style */
+             width: auto; margin-right: 8px;
+        }
+        label[for="m365Users"] { display: inline !important; font-weight: bold !important; }
+
+
+        /* --- Buttons --- */
+        .btn {
+            display: inline-block;
+            background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
+            filter: brightness(1.1);
+        }
+        .btn:active {
+            transform: translateY(0px) scale(1);
+             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 25px;
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .back-link:hover { color: var(--accent-teal); text-decoration: underline; }
+
+        /* --- Index Page --- */
+        .tagline { color: var(--text-secondary); text-align: center; margin-bottom: 40px; font-size: 1.2rem; }
+        .index-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; }
+        .calculator-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 30px; } /* Inherits .card */
+        .calculator-icon {
+            width: 70px; height: 70px; margin-bottom: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white; font-size: 32px; box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
+        }
+        .calculator-desc { margin-top: 15px; color: var(--text-secondary); font-size: 0.95rem; flex-grow: 1; }
+
+        /* --- Tooltips --- */
+        .tooltip { position: relative; display: inline-block; }
+        .icon-info {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 18px; height: 18px;
+            background-color: var(--text-secondary);
+            color: var(--bg-dark);
+            border-radius: 50%; font-size: 11px; cursor: help;
+            margin-left: 6px; font-weight: bold; line-height: 1;
+             transition: background-color 0.2s ease;
+        }
+         .tooltip:hover .icon-info { background-color: var(--accent-teal); }
+
+        .tooltip .tooltip-text {
+            visibility: hidden; opacity: 0;
+            width: 230px;
+            background-color: #2d3748; /* Darker grey */
+            color: var(--text-primary);
+            text-align: left; border-radius: 8px; padding: 12px;
+            position: absolute; z-index: 10;
+            bottom: 140%; left: 50%; margin-left: -115px; /* Center */
+            transition: opacity 0.3s ease, visibility 0s linear 0.3s;
+            font-weight: normal; font-size: 0.85rem; line-height: 1.4;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .tooltip .tooltip-text::after { /* Arrow */
+            content: ""; position: absolute; top: 100%; left: 50%; margin-left: -6px;
+            border-width: 6px; border-style: solid; border-color: #2d3748 transparent transparent transparent;
+        }
+        .tooltip:hover .tooltip-text, .tooltip:focus-within .tooltip-text {
+            visibility: visible; opacity: 1; transition-delay: 0s;
+        }
+
+        /* --- Tables --- */
+        .pricing-table {
+            width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;
+            background-color: rgba(55, 65, 81, 0.5); /* Table background */
+             border-radius: 8px; overflow: hidden; /* Clip corners */
+             border: 1px solid var(--border-color);
+        }
+        .pricing-table th, .pricing-table td {
+            border: none; /* Remove internal borders */
+             border-bottom: 1px solid var(--border-color); /* Row separators */
+            padding: 10px 12px; text-align: left; vertical-align: middle;
+        }
+        .pricing-table th {
+            background-color: rgba(75, 85, 99, 0.4); /* Header background */
+            color: var(--text-primary); font-weight: 600;
+            border-bottom-width: 2px; /* Thicker header separator */
+        }
+        .pricing-table tr:last-child td { border-bottom: none; } /* No border on last row */
+        .pricing-table tr:hover td { background-color: rgba(75, 85, 99, 0.2); } /* Row hover */
+
+        .pricing-table tr.total-row td {
+            font-weight: bold; color: var(--accent-teal);
+            background-color: rgba(20, 184, 166, 0.1); /* Teal highlight */
+             border-top: 2px solid var(--accent-teal);
+        }
+
+        /* --- Copilot Specific Layouts --- */
+         .copilot-grid-container { display: grid; grid-template-columns: 1fr; gap: 30px; }
+         @media (min-width: 800px) { .copilot-grid-container { grid-template-columns: 1fr 1fr; } }
+
+         .number-input { display: flex; align-items: center; margin-bottom: 15px; gap: 15px; }
+         .number-input label { flex: 1 1 60%; margin-bottom: 0; font-weight: normal; color: var(--text-secondary); }
+         .number-input input[type="number"] { flex: 0 0 100px; width: 100px; /* Fixed width for number inputs */ }
+
+         .option-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
+         .option-card {
+             border: 1px solid var(--border-color); border-radius: 8px;
+             padding: 15px; background-color: var(--bg-card); text-align: center;
+             transition: background-color 0.2s ease;
+         }
+         .option-card:hover { background-color: var(--hover-bg-card); }
+         .option-title { font-weight: 500; margin-bottom: 5px; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; }
+         .option-value { font-size: 1.5rem; color: var(--text-primary); font-weight: 600; }
+
+        .cost-comparison {
+            display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px;
+            margin-top: 20px; border-top: 1px solid rgba(243, 244, 246, 0.2); padding-top: 20px;
+        }
+        .cost-option {
+            flex-grow: 1; min-width: 180px; padding: 15px; border-radius: 8px;
+            text-align: center; color: var(--text-primary); border: 1px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .cost-option strong { display: block; margin-bottom: 5px; font-size: 0.9rem; text-transform: uppercase; color: var(--text-primary); }
+        .cost-option .savings { font-size: 0.85rem; margin-top: 8px; font-weight: 500; color: var(--accent-green); }
+
+        .cheaper { background-color: rgba(34, 197, 94, 0.15); border-color: rgba(34, 197, 94, 0.4); }
+        .more-expensive { background-color: rgba(107, 114, 128, 0.15); border-color: rgba(107, 114, 128, 0.4); }
+        .cheaper .savings { color: var(--accent-green); }
+         .cost-option:hover { transform: translateY(-3px); box-shadow: 0 5px 10px rgba(0,0,0,0.2); }
+
+        /* --- Utility & Misc --- */
+        .note { margin-top: 25px; opacity: 0.8; font-size: 0.9rem; text-align: center; color: var(--text-secondary); }
+        .warning {
+            background-color: rgba(239, 68, 68, 0.15); /* Red accent */
+            color: #fecaca; /* Light red text */
+            border-left: 4px solid var(--accent-red);
+            padding: 12px 15px; margin: 15px 0; border-radius: 6px; font-weight: 500; font-size: 0.95rem;
+        }
+        .warning strong { color: #fee2e2; }
+
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 640px) {
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.3rem; }
+            .index-grid { grid-template-columns: 1fr; }
+            .breakdown { grid-template-columns: 1fr; }
+            .number-input { flex-direction: column; align-items: stretch; }
+             .number-input input[type="number"] { flex-basis: auto; width: 100%; } /* Full width on mobile */
+            .option-container { grid-template-columns: 1fr 1fr; }
+             .cost-comparison { flex-direction: column; }
+             .card { padding: 20px; }
+             body { padding: 15px 10px; }
+             .app-container { margin: 10px auto; }
+             .page-section { padding: 0 10px; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container"> <!-- Main centered container -->
+
+    <!-- Index Page Section -->
+    <div id="index-section" class="page-section">
+        <h1>Dynamics 365 Pricing Calculators</h1>
+        <div class="tagline">Modern Estimation Tools</div>
+
+        <div class="index-grid">
+            <div class="card calculator-card">
+                <div class="calculator-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <polyline points="17 11 19 13 23 9"></polyline>
+                    </svg>
+                </div>
+                <h2>Customer Insights</h2>
+                <div class="calculator-desc">
+                    Estimate CI costs based on license, Unified & Interacted People. Get optimization tips.
+                </div>
+                <a href="#" onclick="showCalculator('ci-section'); return false;" class="btn">Launch Calculator</a>
+            </div>
+
+            <div class="card calculator-card">
+                <div class="calculator-icon">
+                   <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                       <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                       <path d="m10 12-1.5 1.5M14 12l1.5 1.5M8.5 8.5v.01M15.5 8.5v.01"></path> <!-- Updated Copilot icon -->
+                    </svg>
+                </div>
+                <h2>Copilot Studio</h2>
+                <div class="calculator-desc">
+                    Calculate Copilot Studio message costs. Compare Pack vs. Pay-As-You-Go pricing.
+                </div>
+                 <a href="#" onclick="showCalculator('cs-section'); return false;" class="btn">Launch Calculator</a>
+            </div>
+        </div>
+         <div class="note" style="margin-top: 40px;">Estimates only. Verify with official Microsoft documentation.</div>
+    </div>
+
+    <!-- Customer Insights Calculator Section -->
+    <div id="ci-section" class="page-section">
+        <a onclick="showCalculator('index-section'); return false;" class="back-link">← Back</a>
+        <h1>Customer Insights Calculator</h1>
+
+        <form id="ciForm">
+            <div class="card">
+                <h2>License Type</h2>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="license" value="standard" checked>
+                        Standard (£1,397.30/mo)
+                         <span class="tooltip"><span class="icon-info" tabindex="0">i</span>
+                                <span class="tooltip-text">Base license cost per tenant per month. Includes 100k Unified People and 10k Interacted People.</span>
+                         </span>
+                    </label>
+                    <label>
+                        <input type="radio" name="license" value="attach">
+                        Attach (£821.90/mo)
+                         <span class="tooltip"><span class="icon-info" tabindex="0">i</span>
+                                <span class="tooltip-text">Reduced base cost available if you have a qualifying Dynamics 365 base license (e.g., Sales Enterprise, Customer Service Enterprise) with a minimum of 10 users.</span>
+                         </span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Unified People <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Total unique customer profiles unified. Base includes 100k. Additional capacity in 100k packs (tiered price).</span></span></h2>
+                <input type="range" id="unifiedSlider" min="100000" max="5000000" step="10000" value="100000">
+                <div class="slider-value" id="unifiedValue">100,000 people</div>
+                <!-- Validation warning div -->
+                 <div id="ci-validation-warning-container"></div>
+            </div>
+
+
+            <div class="card">
+                <h2>Interacted People <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Unique profiles interacted with via activities monthly. Base includes 10k. Additional capacity in tiered packs.</span></span></h2>
+                <input type="range" id="interactedSlider" min="10000" max="500000" step="5000" value="10000">
+                <div class="slider-value" id="interactedValue">10,000 people</div>
+            </div>
+        </form>
+
+        <div id="ciOptimizations" class="card suggestions" style="display: none;">
+             <!-- Optimization suggestions -->
+        </div>
+
+        <div class="card pricing">
+            <h2>Total Estimated Monthly Cost</h2>
+            <div class="total-price" id="totalPrice">£1,397.30</div>
+
+            <div class="breakdown">
+                <div class="breakdown-section">
+                    <h3>Base License</h3>
+                    <div id="baseCost">£1,397.30</div>
+                </div>
+                <div class="breakdown-section">
+                    <h3>Unified People Cost</h3>
+                    <div id="unifiedBreakdown">Base: 100k (incl.)</div>
+                </div>
+                <div class="breakdown-section">
+                    <h3>Interacted People Cost</h3>
+                    <div id="interactedBreakdown">Base: 10k (incl.)</div>
+                </div>
+            </div>
+            <div class="note">Excludes VAT. Estimates only.</div>
+        </div>
+    </div>
+
+    <!-- Copilot Studio Calculator Section -->
+    <div id="cs-section" class="page-section">
+        <a onclick="showCalculator('index-section'); return false;" class="back-link">← Back</a>
+        <h1>Copilot Studio Calculator</h1>
+
+        <div class="card">
+            <div class="example-box">
+                <h3 style="margin-top: 0;">How Pricing Works</h3>
+                <p>Costs are based on message consumption. Choose between pre-paid Message Packs or Pay-As-You-Go. Different actions consume different message amounts.</p>
+                <p><strong>Note:</strong> Usage by licensed M365 Copilot users within M365 apps is free.</p>
+            </div>
+
+            <form id="copilotForm">
+                <div class="copilot-grid-container">
+                    <div>
+                        <h2>Agent Configuration (Per Run)</h2>
+                        <div class="config-card">
+                            <h3>Answers</h3>
+                            <div class="number-input">
+                                <label for="classicAnswers">
+                                    Classic Answers
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Rule-based. Cost: 1 msg/answer.</span></span>
+                                </label>
+                                <input type="number" id="classicAnswers" min="0" value="0" step="1">
+                            </div>
+                            <div class="number-input">
+                                <label for="generativeAnswers">
+                                    Generative Answers
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">AI-generated. Cost: 2 msgs/answer.</span></span>
+                                </label>
+                                <input type="number" id="generativeAnswers" min="0" value="0" step="1">
+                            </div>
+
+                            <h3>Actions</h3>
+                            <div class="number-input">
+                                <label for="agentActions">
+                                    Agent Actions
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">External tasks. Cost: 5 msgs/action.</span></span>
+                                </label>
+                                <input type="number" id="agentActions" min="0" value="0" step="1">
+                            </div>
+                            <div class="number-input">
+                                <label for="tenantGraph">
+                                    Tenant Graph
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">M365 data access. Cost: 10 msgs/action.</span></span>
+                                </label>
+                                <input type="number" id="tenantGraph" min="0" value="0" step="1">
+                            </div>
+                             <div class="number-input">
+                                <label for="agentFlowActions">
+                                    Flow Actions
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Flow runs. Cost: 13 msgs/100 actions. Enter total Flow actions expected per run.</span></span>
+                                </label>
+                                <input type="number" id="agentFlowActions" min="0" value="0" step="1">
+                            </div>
+
+                            <h3>AI Tools (Per 10 Responses)</h3>
+                             <div class="number-input">
+                                <label for="basicAITools">
+                                    Basic AI Tools
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Simple AI. Cost: 1 msg/10 responses. Enter # responses.</span></span>
+                                </label>
+                                <input type="number" id="basicAITools" min="0" value="0" step="1">
+                            </div>
+                             <div class="number-input">
+                                <label for="standardAITools">
+                                    Standard AI Tools
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Medium AI. Cost: 15 msgs/10 responses. Enter # responses.</span></span>
+                                </label>
+                                <input type="number" id="standardAITools" min="0" value="0" step="1">
+                            </div>
+                             <div class="number-input">
+                                <label for="premiumAITools">
+                                    Premium AI Tools
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Advanced AI. Cost: 100 msgs/10 responses. Enter # responses.</span></span>
+                                </label>
+                                <input type="number" id="premiumAITools" min="0" value="0" step="1">
+                            </div>
+                        </div>
+
+                        <h2>Usage Volume</h2>
+                        <div class="config-card">
+                            <div class="number-input" style="flex-direction: column; align-items: stretch;"> <!-- Stack label/input -->
+                                <label for="monthlyRuns">
+                                    Total Monthly Agent Runs
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span><span class="tooltip-text">Total conversations/sessions per month across all users.</span></span>
+                                </label>
+                                <input type="number" id="monthlyRuns" min="1" value="1000" step="100">
+                            </div>
+
+                            <div class="m365-option checkbox-group"> <!-- Use checkbox-group styling -->
+                                <label>
+                                    <input type="checkbox" id="m365Users">
+                                    Include Free Runs by M365 Copilot Users?
+                                    <span class="tooltip"><span class="icon-info" tabindex="0">i</span>
+                                        <span class="tooltip-text">Check if some/all runs are by users with M365 Copilot licenses. Their usage within M365 apps doesn't count towards billable messages.</span>
+                                    </span>
+                                </label>
+                                <div id="m365Percentage" style="display: none; padding-top: 15px; margin-top:15px; border-top: 1px dashed var(--border-color);">
+                                    <label for="m365PercentSlider">Percentage of Runs by M365 Copilot Users:</label>
+                                    <input type="range" id="m365PercentSlider" min="0" max="100" step="5" value="0">
+                                    <div class="slider-value" id="m365PercentValue">0%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h2>Results Summary</h2>
+                        <div class="card" style="padding: 0; overflow: hidden; backdrop-filter: none; background: transparent; border: none; box-shadow: none;"> <!-- Remove card styling for table wrapper -->
+                            <table class="pricing-table">
+                                <thead><tr><th>Action Type (Per Run)</th><th>Count</th><th>Messages</th></tr></thead>
+                                <tbody>
+                                    <tr><td>Classic Answers</td><td id="classicAnswersCount">0</td><td id="classicAnswersMessages">0</td></tr>
+                                    <tr><td>Generative Answers</td><td id="generativeAnswersCount">0</td><td id="generativeAnswersMessages">0</td></tr>
+                                    <tr><td>Agent Actions</td><td id="agentActionsCount">0</td><td id="agentActionsMessages">0</td></tr>
+                                    <tr><td>Tenant Graph</td><td id="tenantGraphCount">0</td><td id="tenantGraphMessages">0</td></tr>
+                                    <tr><td>Flow Actions</td><td id="agentFlowActionsCount">0</td><td id="agentFlowActionsMessages">0</td></tr>
+                                    <tr><td>Basic AI Resp.</td><td id="basicAIToolsCount">0</td><td id="basicAIToolsMessages">0</td></tr>
+                                    <tr><td>Standard AI Resp.</td><td id="standardAIToolsCount">0</td><td id="standardAIToolsMessages">0</td></tr>
+                                    <tr><td>Premium AI Resp.</td><td id="premiumAIToolsCount">0</td><td id="premiumAIToolsMessages">0</td></tr>
+                                    <tr class="total-row"><td colspan="2">Est. Messages Per Run</td><td id="totalMessagesPerRun">0</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="option-container">
+                            <div class="option-card">
+                                <div class="option-title">Total Runs /mo</div>
+                                <div class="option-value" id="monthlyRunsDisplay">1k</div>
+                            </div>
+                            <div class="option-card" id="m365RunsCard" style="display: none;">
+                                <div class="option-title">Free Runs /mo</div>
+                                <div class="option-value" id="m365RunsDisplay">0</div>
+                            </div>
+                            <div class="option-card">
+                                <div class="option-title">Billable Runs /mo</div>
+                                <div class="option-value" id="billableRunsDisplay">1k</div>
+                            </div>
+                             <div class="option-card">
+                                <div class="option-title">Billable Msgs /mo</div>
+                                <div class="option-value" id="totalMonthlyMessages">0</div>
+                            </div>
+                        </div>
+
+                        <div class="card pricing">
+                            <h2>Monthly Cost Estimate</h2>
+                             <div class="option-container" style="grid-template-columns: 1fr 1fr;"> <!-- Force 2 columns -->
+                                <div>
+                                    <h3>Message Packs</h3>
+                                    <div>Packs Req: <strong id="messagePacksRequired">0</strong></div>
+                                    <div>Cost: <strong style="font-size: 1.1rem;">£<span id="messagePackCost">0.00</span></strong></div>
+                                    <div style="font-size: 0.8rem; opacity: 0.8;">(£161.49 / 25k msgs)</div>
+                                </div>
+                                <div>
+                                    <h3>Pay-As-You-Go</h3>
+                                     <div>Messages: <strong id="paygoMessages">0</strong></div>
+                                    <div>Cost: <strong style="font-size: 1.1rem;">£<span id="paygoCost">0.00</span></strong></div>
+                                    <div style="font-size: 0.8rem; opacity: 0.8;">(£0.01 / msg)</div>
+                                </div>
+                            </div>
+                            <div class="cost-comparison" id="costComparison">
+                                <!-- Cost comparison dynamically inserted -->
+                            </div>
+                            <div class="note">Excludes VAT. Estimates only.</div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div> <!-- End App Container -->
+
+
+    <script>
+    // --- Global Scope ---
+    const body = document.body;
+
+    // --- Navigation Logic ---
+    function showCalculator(sectionIdToShow) {
+        const sections = document.querySelectorAll('.page-section');
+        sections.forEach(section => {
+            if (section.id === sectionIdToShow) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Smooth scroll to top
+    }
+
+     // --- Dynamic Background Effect ---
+     let rafId; // Request Animation Frame ID
+     let mouseX = window.innerWidth / 2;
+     let mouseY = window.innerHeight / 2;
+     let targetMouseX = mouseX;
+     let targetMouseY = mouseY;
+     const lerpFactor = 0.08; // Smoothing factor (lower = smoother/slower)
+
+     function updateMousePosition(event) {
+         targetMouseX = event.clientX;
+         targetMouseY = event.clientY;
+         // Start animation loop if not already running
+         if (!rafId) {
+             rafId = requestAnimationFrame(animateBackground);
+         }
+     }
+
+     function lerp(start, end, factor) {
+         return start + (end - start) * factor;
+     }
+
+      function animateBackground() {
+         mouseX = lerp(mouseX, targetMouseX, lerpFactor);
+         mouseY = lerp(mouseY, targetMouseY, lerpFactor);
+
+         // Use percentages relative to viewport for stability
+         const xPercent = (mouseX / window.innerWidth) * 100;
+         const yPercent = (mouseY / window.innerHeight) * 100;
+
+         body.style.setProperty('--mouse-x', `${xPercent}%`);
+         body.style.setProperty('--mouse-y', `${yPercent}%`);
+
+         // Stop animation loop if mouse hasn't moved significantly
+         if (Math.abs(mouseX - targetMouseX) < 0.1 && Math.abs(mouseY - targetMouseY) < 0.1) {
+             cancelAnimationFrame(rafId);
+             rafId = null;
+         } else {
+             rafId = requestAnimationFrame(animateBackground);
+         }
+     }
+
+     window.addEventListener('mousemove', updateMousePosition, { passive: true }); // Use passive listener
+
+
+    // --- Customer Insights Calculator JS (scoped) ---
+    (function() { // IIFE to scope CI variables
+        const ciSection = document.getElementById('ci-section');
+        if (!ciSection) return;
+
+        let ciLicenseType = 'standard';
+        let ciUnifiedPeople = 100000;
+        let ciInteractedPeople = 10000;
+
+        const unifiedSlider = ciSection.querySelector('#unifiedSlider');
+        const unifiedValueDisplay = ciSection.querySelector('#unifiedValue');
+        const interactedSlider = ciSection.querySelector('#interactedSlider');
+        const interactedValueDisplay = ciSection.querySelector('#interactedValue');
+        const licenseRadios = ciSection.querySelectorAll('input[name="license"]');
+        const totalPriceDisplay = ciSection.querySelector('#totalPrice');
+        const baseCostDisplay = ciSection.querySelector('#baseCost');
+        const unifiedBreakdownDisplay = ciSection.querySelector('#unifiedBreakdown');
+        const interactedBreakdownDisplay = ciSection.querySelector('#interactedBreakdown');
+        const optimizationsDisplay = ciSection.querySelector('#ciOptimizations');
+        const validationContainer = ciSection.querySelector('#ci-validation-warning-container');
+
+        const BASE_COSTS = { standard: 1397.30, attach: 821.90 };
+        const BASE_UNIFIED = 100000;
+        const BASE_INTERACTED = 10000;
+        const UNIFIED_TIERS = [{ limit: 500000, price: 1643.90 }, { limit: 2000000, price: 1232.90 }, { limit: Infinity, price: 821.90 }];
+        const UNIFIED_PACK_SIZE = 100000;
+        const INTERACTED_TIERS = [{ limit: 50000, price: 205.50, size: 5000 }, { limit: 250000, price: 246.60, size: 10000 }, { limit: Infinity, price: 411.00, size: 50000 }];
+
+        function formatCurrencyCI(value) { return `£${value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+        function formatNumberCI(value, compact = false) {
+             if (compact && value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+             if (compact && value >= 1000) return (value / 1000).toFixed(0) + 'k';
+             return value.toLocaleString('en-GB');
+        }
+
+
+        licenseRadios.forEach(radio => radio.addEventListener('change', (e) => { ciLicenseType = e.target.value; updateCiCalculations(); }));
+        unifiedSlider.addEventListener('input', (e) => { ciUnifiedPeople = parseInt(e.target.value); unifiedValueDisplay.textContent = `${formatNumberCI(ciUnifiedPeople, true)} people`; checkCiValidation(); updateCiCalculations(); });
+        interactedSlider.addEventListener('input', (e) => { ciInteractedPeople = parseInt(e.target.value); interactedValueDisplay.textContent = `${formatNumberCI(ciInteractedPeople, true)} people`; checkCiValidation(); updateCiCalculations(); });
+
+        function checkCiValidation() {
+            validationContainer.innerHTML = ''; // Clear previous warning
+            if (ciInteractedPeople > ciUnifiedPeople) {
+                const warning = document.createElement('div');
+                warning.className = 'warning'; // Use CSS class
+                warning.innerHTML = `<strong>Warning:</strong> Interacted People (${formatNumberCI(ciInteractedPeople, true)}) cannot exceed Unified People (${formatNumberCI(ciUnifiedPeople, true)}).`;
+                validationContainer.appendChild(warning);
+                return false; // Indicate invalid state
+            }
+            return true; // Indicate valid state
+        }
+
+        function calculateCiUnifiedCost(totalPeople) {
+            if (totalPeople <= BASE_UNIFIED) return { cost: 0, packs: 0, pricePerPack: 0, tierInfo: "Base" };
+            const additional = totalPeople - BASE_UNIFIED;
+            const tier = UNIFIED_TIERS.find(t => totalPeople <= t.limit) || UNIFIED_TIERS[UNIFIED_TIERS.length - 1];
+            const packs = Math.ceil(additional / UNIFIED_PACK_SIZE);
+            const cost = packs * tier.price;
+            const tierInfo = `Tier ${UNIFIED_TIERS.indexOf(tier) + 1}`;
+            return { cost, packs, pricePerPack: tier.price, tierInfo };
+        }
+
+        function calculateCiInteractedCost(totalPeople) {
+             if (totalPeople <= BASE_INTERACTED) return { cost: 0, packs: 0, packSize: 0, pricePerPack: 0, tierInfo: "Base" };
+            const additional = totalPeople - BASE_INTERACTED;
+            const tier = INTERACTED_TIERS.find(t => totalPeople <= t.limit) || INTERACTED_TIERS[INTERACTED_TIERS.length - 1];
+            const packs = Math.ceil(additional / tier.size);
+            const cost = packs * tier.price;
+            const tierInfo = `Tier ${INTERACTED_TIERS.indexOf(tier) + 1}`;
+            return { cost, packs, packSize: tier.size, pricePerPack: tier.price, tierInfo };
+        }
+
+        function findCiOptimizations(isValid) {
+             if (!isValid) return []; // No optimizations if config is invalid
+
+            const optimizations = [];
+            if (ciLicenseType === 'standard') {
+                optimizations.push(`Consider 'Attach' license if eligible to save ${formatCurrencyCI(BASE_COSTS.standard - BASE_COSTS.attach)}/mo base cost.`);
+            }
+            // Simplified tier optimization check (check next tier start)
+             if (ciUnifiedPeople > BASE_UNIFIED) {
+                const currentCalc = calculateCiUnifiedCost(ciUnifiedPeople);
+                const currentTierIndex = UNIFIED_TIERS.findIndex(t => ciUnifiedPeople <= t.limit);
+                if (currentTierIndex < UNIFIED_TIERS.length - 1) {
+                    const nextTierStart = UNIFIED_TIERS[currentTierIndex].limit + 1;
+                    const costAtNextStart = calculateCiUnifiedCost(nextTierStart).cost;
+                     if (costAtNextStart < currentCalc.cost) optimizations.push(`Unified: Increasing to ${formatNumberCI(nextTierStart, true)} might lower pack cost.`);
+                }
+            }
+             if (ciInteractedPeople > BASE_INTERACTED) {
+                 const currentCalc = calculateCiInteractedCost(ciInteractedPeople);
+                 const currentTierIndex = INTERACTED_TIERS.findIndex(t => ciInteractedPeople <= t.limit);
+                 if (currentTierIndex < INTERACTED_TIERS.length - 1) {
+                     const nextTierStart = INTERACTED_TIERS[currentTierIndex].limit + 1;
+                     const costAtNextStart = calculateCiInteractedCost(nextTierStart).cost;
+                     if (costAtNextStart < currentCalc.cost) optimizations.push(`Interacted: Increasing to ${formatNumberCI(nextTierStart, true)} might lower pack cost.`);
+                 }
+            }
+            return optimizations;
+        }
+
+        function updateCiCalculations() {
+            const isValid = checkCiValidation();
+            const baseCost = BASE_COSTS[ciLicenseType];
+            const unifiedResult = calculateCiUnifiedCost(ciUnifiedPeople);
+            const interactedResult = calculateCiInteractedCost(ciInteractedPeople);
+            const totalCost = isValid ? baseCost + unifiedResult.cost + interactedResult.cost : baseCost;
+
+            totalPriceDisplay.textContent = formatCurrencyCI(totalCost) + (isValid ? "" : " (Invalid Config)");
+            baseCostDisplay.textContent = `${formatCurrencyCI(baseCost)} (${ciLicenseType})`;
+
+            unifiedBreakdownDisplay.innerHTML = `Base: ${formatNumberCI(BASE_UNIFIED, true)} (incl.)` +
+                (unifiedResult.packs > 0 ? `<br>+ ${formatNumberCI(unifiedResult.packs)} packs (${unifiedResult.tierInfo}) | <strong>${formatCurrencyCI(unifiedResult.cost)}</strong>` : `<br>Add. Cost: <strong>${formatCurrencyCI(0)}</strong>`);
+
+            interactedBreakdownDisplay.innerHTML = `Base: ${formatNumberCI(BASE_INTERACTED, true)} (incl.)` +
+                 (interactedResult.packs > 0 ? `<br>+ ${formatNumberCI(interactedResult.packs)} packs (${interactedResult.tierInfo}) | <strong>${formatCurrencyCI(interactedResult.cost)}</strong>` : `<br>Add. Cost: <strong>${formatCurrencyCI(0)}</strong>`);
+
+            const opts = findCiOptimizations(isValid);
+            if (opts.length > 0) {
+                optimizationsDisplay.innerHTML = `<h2>Optimization Suggestions</h2>${opts.map(opt => `<div class="suggestion">${opt}</div>`).join('')}`;
+                optimizationsDisplay.style.display = 'block';
+            } else {
+                optimizationsDisplay.style.display = 'none';
+            }
+        }
+
+        // Initial Setup
+        unifiedValueDisplay.textContent = `${formatNumberCI(ciUnifiedPeople, true)} people`; // Use compact format initially
+        interactedValueDisplay.textContent = `${formatNumberCI(ciInteractedPeople, true)} people`;
+        updateCiCalculations();
+    })();
+
+
+    // --- Copilot Studio Calculator JS (scoped) ---
+     (function() { // IIFE to scope CS variables
+        const csSection = document.getElementById('cs-section');
+        if (!csSection) return;
+
+        const MESSAGE_RATES = { classicAnswer: 1, generativeAnswer: 2, agentAction: 5, tenantGraph: 10, agentFlowActions: 0.13, basicAITools: 0.1, standardAITools: 1.5, premiumAITools: 10 };
+        const PACK_SIZE = 25000;
+        const PACK_PRICE_GBP = 161.49;
+        const PAYGO_RATE_GBP = 0.01;
+
+        // Simplified element fetching assuming IDs are unique within csSection or globally if needed
+        const elements = Object.fromEntries(
+             Array.from(csSection.querySelectorAll('[id]')).map(el => [el.id, el])
+        );
+
+        function formatCurrencyCS(value) { return value.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+         function formatNumberCS(value, compact = false) {
+             if (compact && value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+             if (compact && value >= 1000) return (value / 1000).toFixed(0) + 'k';
+             return value.toLocaleString('en-GB');
+        }
+
+
+        function updateCsCalculation() {
+            const getVal = (id) => parseInt(elements[id]?.value) || 0;
+
+            const classicAns = getVal('classicAnswers'), genAns = getVal('generativeAnswers'), agentActs = getVal('agentActions'),
+                  tenantGraphs = getVal('tenantGraph'), flowActs = getVal('agentFlowActions'), basicAI = getVal('basicAITools'),
+                  standardAI = getVal('standardAITools'), premiumAI = getVal('premiumAITools'), monthly = getVal('monthlyRuns');
+
+            const msgClassic = classicAns * MESSAGE_RATES.classicAnswer, msgGen = genAns * MESSAGE_RATES.generativeAnswer,
+                  msgAgent = agentActs * MESSAGE_RATES.agentAction, msgGraph = tenantGraphs * MESSAGE_RATES.tenantGraph,
+                  msgFlow = flowActs * MESSAGE_RATES.agentFlowActions, msgBasic = basicAI * MESSAGE_RATES.basicAITools,
+                  msgStandard = standardAI * MESSAGE_RATES.standardAITools, msgPremium = premiumAI * MESSAGE_RATES.premiumAITools;
+
+            const totalPerRun = Math.round((msgClassic + msgGen + msgAgent + msgGraph + msgFlow + msgBasic + msgStandard + msgPremium) * 100) / 100;
+
+            const useM365 = elements.m365Users.checked;
+            const m365Percent = useM365 ? (parseInt(elements.m365PercentSlider.value) / 100) : 0;
+            const m365Runs = Math.round(monthly * m365Percent);
+            const billableRuns = Math.max(0, monthly - m365Runs);
+            const totalMonthlyBillable = Math.ceil(totalPerRun * billableRuns);
+
+            const packsRequired = totalMonthlyBillable > 0 ? Math.ceil(totalMonthlyBillable / PACK_SIZE) : 0;
+            const packsCost = packsRequired * PACK_PRICE_GBP;
+            const paygoPrice = totalMonthlyBillable * PAYGO_RATE_GBP;
+
+            // --- Update Display ---
+            const setTxt = (id, val, fmt = formatNumberCS) => { if(elements[id]) elements[id].textContent = fmt(val); };
+
+            setTxt('classicAnswersCount', classicAns); setTxt('classicAnswersMessages', Math.ceil(msgClassic));
+            setTxt('generativeAnswersCount', genAns); setTxt('generativeAnswersMessages', Math.ceil(msgGen));
+            setTxt('agentActionsCount', agentActs); setTxt('agentActionsMessages', Math.ceil(msgAgent));
+            setTxt('tenantGraphCount', tenantGraphs); setTxt('tenantGraphMessages', Math.ceil(msgGraph));
+            setTxt('agentFlowActionsCount', flowActs); setTxt('agentFlowActionsMessages', Math.ceil(msgFlow));
+            setTxt('basicAIToolsCount', basicAI); setTxt('basicAIToolsMessages', Math.ceil(msgBasic));
+            setTxt('standardAIToolsCount', standardAI); setTxt('standardAIToolsMessages', Math.ceil(msgStandard));
+            setTxt('premiumAIToolsCount', premiumAI); setTxt('premiumAIToolsMessages', Math.ceil(msgPremium));
+
+            setTxt('totalMessagesPerRun', Math.ceil(totalPerRun));
+            setTxt('monthlyRunsDisplay', monthly, (v) => formatNumberCS(v, true)); // Use compact format
+            setTxt('m365RunsDisplay', m365Runs, (v) => formatNumberCS(v, true));
+            setTxt('billableRunsDisplay', billableRuns, (v) => formatNumberCS(v, true));
+            setTxt('totalMonthlyMessages', totalMonthlyBillable, (v) => formatNumberCS(v, true));
+
+            setTxt('messagePacksRequired', packsRequired); setTxt('messagePackCost', packsCost, formatCurrencyCS);
+            setTxt('paygoMessages', totalMonthlyBillable, (v) => formatNumberCS(v, true)); setTxt('paygoCost', paygoPrice, formatCurrencyCS);
+
+            updateCsCostComparison(totalMonthlyBillable, packsRequired, packsCost, paygoPrice);
+        }
+
+         function updateCsCostComparison(totalMessages, packsRequired, packCost, paygoCost) {
+            let html = '';
+            const comparisonEl = elements.costComparison;
+            if (!comparisonEl) return;
+
+            if (totalMessages === 0) {
+                html = `<p style="text-align: center; color: var(--text-secondary); width: 100%;">Configure agent & usage.</p>`;
+            } else {
+                const paygoCheaper = paygoCost < packCost;
+                const savings = Math.abs(packCost - paygoCost);
+                const savingsText = savings > 0.01 ? `<div class="savings">Saves ${formatCurrencyCS(savings)}</div>` : '';
+
+                 const packHtml = `
+                    <div class="cost-option ${!paygoCheaper ? 'cheaper' : 'more-expensive'}">
+                        <strong>${!paygoCheaper ? 'Recommended' : ''} Message Packs</strong>
+                        £${formatCurrencyCS(packCost)}
+                        <small style="display: block; opacity: 0.7;">(${formatNumberCS(packsRequired)} pack${packsRequired !== 1 ? 's' : ''})</small>
+                        ${!paygoCheaper ? savingsText : ''}
+                    </div>`;
+                const paygoHtml = `
+                    <div class="cost-option ${paygoCheaper ? 'cheaper' : 'more-expensive'}">
+                         <strong>${paygoCheaper ? 'Recommended' : ''} Pay-As-You-Go</strong>
+                        £${formatCurrencyCS(paygoCost)}
+                         <small style="display: block; opacity: 0.7;">(${formatNumberCS(totalMessages, true)} msgs)</small>
+                         ${paygoCheaper ? savingsText : ''}
+                    </div>`;
+
+                 html = paygoCheaper ? paygoHtml + packHtml : packHtml + paygoHtml; // Show recommended first if possible
+            }
+            comparisonEl.innerHTML = html;
+        }
+
+        // Event Listeners
+        const csInputFields = [
+            'classicAnswers', 'generativeAnswers', 'agentActions', 'tenantGraph',
+            'agentFlowActions', 'basicAITools', 'standardAITools', 'premiumAITools',
+            'monthlyRuns', 'm365PercentSlider'
+        ];
+        csInputFields.forEach(id => elements[id]?.addEventListener('input', updateCsCalculation));
+
+        elements.m365Users?.addEventListener('change', function() {
+            const showM365 = this.checked;
+            elements.m365Percentage.style.display = showM365 ? 'block' : 'none';
+            elements.m365RunsCard.style.display = showM365 ? 'block' : 'none';
+            if (!showM365) {
+                elements.m365PercentSlider.value = 0;
+                elements.m365PercentValue.textContent = '0%';
+            }
+            updateCsCalculation();
+        });
+
+        elements.m365PercentSlider?.addEventListener('input', function() {
+            elements.m365PercentValue.textContent = this.value + '%';
+            // Calculation is triggered by the main input listener
+        });
+
+        // Initialisation
+        updateCsCalculation();
+     })();
+
+
+    // --- Initial Page Load ---
+    // Show index section by default when script runs
+     document.addEventListener('DOMContentLoaded', () => {
+         showCalculator('index-section');
+     });
+
+
+    </script>
+
+</body>
+</html>
