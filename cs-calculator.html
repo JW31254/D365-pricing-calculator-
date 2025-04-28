@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copilot Studio Calculator</title>
+  <style>
+    /* --- Modern Base & Theme --- */
+    :root {
+      --bg-dark: #111827;
+      --bg-card: rgba(31, 41, 55, 0.6);
+      --border-color: rgba(75, 85, 99, 0.6);
+      --text-primary: #f3f4f6;
+      --text-secondary: #9ca3af;
+      --accent-blue: #3b82f6;
+      --accent-purple: #8b5cf6;
+      --accent-teal: #14b8a6;
+      --hover-bg-card: rgba(55, 65, 81, 0.7);
+      --mouse-x: 50%;
+      --mouse-y: 50%;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      background-image:
+        radial-gradient(800px circle at var(--mouse-x) var(--mouse-y), rgba(59,130,246,0.1), transparent 40%),
+        radial-gradient(1200px circle at calc(100% - var(--mouse-x)) calc(100% - var(--mouse-y)), rgba(139,92,246,0.1), transparent 50%);
+      background-attachment: fixed;
+      color: var(--text-primary);
+      padding: 30px 20px;
+      overflow-x: hidden;
+      transition: background 0.2s linear;
+    }
+    .app-container { max-width: 900px; margin: 20px auto; }
+    h1 { font-size: 2.25rem; color: var(--text-primary); margin-bottom: 1em; text-align: center; }
+    .back-link { display: inline-block; color: var(--accent-blue); text-decoration: none; margin-bottom: 25px; font-weight: 500; }
+    .back-link:hover { color: var(--accent-teal); text-decoration: underline; }
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    .card:hover { transform: translateY(-4px); background: var(--hover-bg-card); }
+    .config-card { background: rgba(55,65,81,0.5); border-radius:8px; padding:20px; border:1px solid var(--border-color); margin-bottom:15px; }
+    .number-input { display:flex; align-items:center; margin-bottom:15px; gap:15px; }
+    .number-input label { flex:1; color: var(--text-secondary); }
+    .number-input input { flex:0 0 100px; width:100px; }
+    input[type="number"] {
+      width:100%; padding:10px; border:1px solid var(--border-color); border-radius:6px;
+      background-color:rgba(55,65,81,0.8); color:var(--text-primary); font-size:0.95rem;
+    }
+    input[type="checkbox"] { accent-color: var(--accent-purple); width:1.1em; height:1.1em; cursor:pointer; }
+    .pricing-table {
+      width:100%; border-collapse:collapse; margin-bottom:20px;
+      background:rgba(55,65,81,0.5); border-radius:8px; overflow:hidden; border:1px solid var(--border-color);
+    }
+    .pricing-table th, .pricing-table td { padding:10px; border-bottom:1px solid var(--border-color); text-align:left; }
+    .pricing-table th { background:rgba(75,85,99,0.4); color:var(--text-primary); font-weight:600; }
+    .pricing-table tr:last-child td { border-bottom:none; }
+    .pricing-table tr.total-row td { font-weight:bold; color:var(--accent-teal); background:rgba(20,184,166,0.1); }
+    .option-container { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:15px; margin-bottom:20px; }
+    .option-card { background:var(--bg-card); border:1px solid var(--border-color); border-radius:8px; padding:15px; text-align:center; }
+    .option-title { font-size:0.8rem; color:var(--text-secondary); text-transform:uppercase; }
+    .option-value { font-size:1.5rem; color:var(--text-primary); font-weight:600; }
+    .cost-comparison { display:flex; justify-content:space-around; flex-wrap:wrap; gap:15px; margin-top:20px; }
+    .cost-option { flex:1; min-width:180px; padding:15px; border-radius:8px; text-align:center; border:1px solid transparent; transition:transform 0.2s ease; }
+    .cost-option:hover { transform:translateY(-3px); }
+    .cheaper { background:rgba(34,197,94,0.15); border-color:rgba(34,197,94,0.4); }
+    .more-expensive { background:rgba(107,114,128,0.15); border-color:rgba(107,114,128,0.4); }
+    .savings { font-size:0.85rem; margin-top:8px; color:var(--accent-green); }
+    .tooltip { position:relative; display:inline-block; }
+    .icon-info { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; background:var(--text-secondary); color:var(--bg-dark); border-radius:50%; font-size:11px; cursor:help; margin-left:6px; }
+    .tooltip-text {
+      visibility:hidden; opacity:0;
+      width:230px; background:#2d3748; color:var(--text-primary);
+      text-align:left; border-radius:8px; padding:12px;
+      position:absolute; z-index:10; bottom:140%; left:50%; transform:translateX(-50%);
+      transition:opacity 0.3s ease;
+      font-size:0.85rem;
+    }
+    .tooltip:hover .tooltip-text { visibility:visible; opacity:1; }
+    @media (max-width:640px) { body{padding:15px 10px;} .app-container{margin:10px auto;} h1{font-size:1.8rem;} .config-card{padding:15px;} }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    <h1>Copilot Studio Calculator</h1>
+    <div class="card">
+      <h3>How Pricing Works</h3>
+      <p>Costs are based on message consumption. Choose between pre-paid Message Packs or Pay-As-You-Go.</p>
+      <p><strong>Note:</strong> Usage by licensed M365 Copilot users within M365 apps is free.</p>
+    </div>
+    <form id="copilotForm">
+      <div class="config-card">
+        <h2>Agent Configuration (Per Run)</h2>
+        <div class="number-input"><label for="classicAnswers">Classic Answers <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">Rule-based. Cost: 1 msg/answer.</span></span></label><input type="number" id="classicAnswers" min="0" value="0"></div>
+        <div class="number-input"><label for="generativeAnswers">Generative Answers <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">AI-generated. Cost: 2 msgs/answer.</span></span></label><input type="number" id="generativeAnswers" min="0" value="0"></div>
+        <div class="number-input"><label for="agentActions">Agent Actions <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">External tasks. Cost: 5 msgs/action.</span></span></label><input type="number" id="agentActions" min="0" value="0"></div>
+        <div class="number-input"><label for="tenantGraph">Tenant Graph <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">M365 data access. Cost: 10 msgs/action.</span></span></label><input type="number" id="tenantGraph" min="0" value="0"></div>
+        <div class="number-input"><label for="agentFlowActions">Flow Actions <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">Flow runs. Cost: 13 msgs/100 actions.</span></span></label><input type="number" id="agentFlowActions" min="0" value="0"></div>
+        <h2>AI Tools (Per 10 Responses)</h2>
+        <div class="number-input"><label for="basicAITools">Basic AI Tools <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">Simple AI. Cost: 1 msg/10 responses.</span></span></label><input type="number" id="basicAITools" min="0" value="0"></div>
+        <div class="number-input"><label for="standardAITools">Standard AI Tools <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">Medium AI. Cost: 15 msgs/10 responses.</span></span></label><input type="number" id="standardAITools" min="0" value="0"></div>
+        <div class="number-input"><label for="premiumAITools">Premium AI Tools <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">Advanced AI. Cost: 100 msgs/10 responses.</span></span></label><input type="number" id="premiumAITools" min="0" value="0"></div>
+      </div>
+      <div class="config-card">
+        <h2>Usage Volume</h2>
+        <div class="number-input" style="flex-direction:column;align-items:stretch;"><label for="monthlyRuns">Total Monthly Agent Runs <span class="tooltip"><span class="icon-info">i</span><span class="tooltip-text">Total sessions per month.</span></span></label><input type="number" id="monthlyRuns" min="1" value="1000" step="100"></div>
+        <label><input type="checkbox" id="m365Users"> Include Free Runs by M365 Copilot Users?</label>
+        <div id="m365Percentage" style="display:none;padding-top:15px;margin-top:15px;border-top:1px dashed var(--border-color);">
+          <label for="m365PercentSlider">Percentage of Runs by M365 Copilot Users:</label>
+          <input type="range" id="m365PercentSlider" min="0" max="100" step="5" value="0">
+          <div class="slider-value" id="m365PercentValue">0%</div>
+        </div>
+      </div>
+      <div class="card">
+        <table class="pricing-table">
+          <thead><tr><th>Action Type (Per Run)</th><th>Count</th><th>Messages</th></tr></thead>
+          <tbody>
+            <tr><td>Classic Answers</td><td id="classicAnswersCount">0</td><td id="classicAnswersMessages">0</td></tr>
+            <tr><td>Generative Answers</td><td id="generativeAnswersCount">0</td><td id="generativeAnswersMessages">0</td></tr>
+            <tr><td>Agent Actions</td><td id="agentActionsCount">0</td><td id="agentActionsMessages">0</td></tr>
+            <tr><td>Tenant Graph</td><td id="tenantGraphCount">0</td><td id="tenantGraphMessages">0</td></tr>
+            <tr><td>Flow Actions</td><td id="agentFlowActionsCount">0</td><td id="agentFlowActionsMessages">0</td></tr>
+            <tr><td>Basic AI Resp.</td><td id="basicAIToolsCount">0</td><td id="basicAIToolsMessages">0</td></tr>
+            <tr><td>Standard AI Resp.</td><td id="standardAIToolsCount">0</td><td id="standardAIToolsMessages">0</td></tr>
+            <tr><td>Premium AI Resp.</td><td id="premiumAIToolsCount">0</td><td id="premiumAIToolsMessages">0</td></tr>
+            <tr class="total-row"><td colspan="2">Est. Messages Per Run</td><td id="totalMessagesPerRun">0</td></tr>
+          </tbody>
+        </table>
+        <div class="option-container">
+          <div class="option-card"><div class="option-title">Total Runs /mo</div><div class="option-value" id="monthlyRunsDisplay">1k</div></div>
+          <div class="option-card" id="m365RunsCard" style="display:none;"><div class="option-title">Free Runs /mo</div><div class="option-value" id="m365RunsDisplay">0</div></div>
+          <div class="option-card"><div class="option-title">Billable Runs /mo</div><div class="option-value" id="billableRunsDisplay">1k</div></div>
+          <div class="option-card"><div class="option-title">Billable Msgs /mo</div><div class="option-value" id="totalMonthlyMessages">0</div></div>
+        </div>
+        <div class="card pricing">
+          <h2>Monthly Cost Estimate</h2>
+          <div class="option-container" style="grid-template-columns:1fr 1fr;">
+            <div><h3>Message Packs</h3><div>Packs Req: <strong id="messagePacksRequired">0</strong></div><div>Cost: <strong>£<span id="messagePackCost">0.00</span></strong></div><div style="font-size:0.8rem;opacity:0.8;">(£161.49 / 25k msgs)</div></div>
+            <div><h3>Pay-As-You-Go</h3><div>Messages: <strong id="paygoMessages">0</strong></div><div>Cost: <strong>£<span id="paygoCost">0.00</span></strong></div><div style="font-size:0.8rem;opacity:0.8;">(£0.01 / msg)</div></div>
+          </div>
+          <div class="cost-comparison" id="costComparison"></div>
+          <div class="note">Excludes VAT. Estimates only.</div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // Background Gradient Follow
+    const bodyEl=document.body;
+    let raf, mx=window.innerWidth/2, my=window.innerHeight/2, tx=mx, ty=my;
+    function lerp(a,b,f){return a+(b-a)*0.08;} 
+    function anim(){ mx=lerp(mx,tx); my=lerp(my,ty); bodyEl.style.setProperty('--mouse-x',(mx/window.innerWidth)*100+'%'); bodyEl.style.setProperty('--mouse-y',(my/window.innerHeight)*100+'%'); if(Math.abs(mx-tx)<0.1&&Math.abs(my-ty)<0.1){ cancelAnimationFrame(raf);} else raf=requestAnimationFrame(anim);} 
+    window.addEventListener('mousemove', e=>{tx=e.clientX; ty=e.clientY; if(!raf) raf=requestAnimationFrame(anim);}, {passive:true});
+  </script>
+
+  <script>
+    // Copilot Studio Calculator Logic
+    (function(){
+      const RATES={classic:1,gen:2,agent:5,graph:10,flow:0.13,basic:0.1,std:1.5,prem:10};
+      const PACK_SZ=25000, PACK_P=161.49, PAYGO=0.01;
+      const el=id=>document.getElementById(id);
+      function fmtNum(v,compact){ if(compact&&v>=1000) return Math.round(v/1000)+'k'; return v.toLocaleString('en-GB'); }
+      function fmtCurr(v){ return v.toLocaleString('en-GB',{minimumFractionDigits:2}); }
+
+      function updateAll(){
+        const getN=id=>parseInt(el(id).value)||0;
+        const classic=getN('classicAnswers'), gen=getN('generativeAnswers'), agent=getN('agentActions'), graph=getN('tenantGraph'), flow=getN('agentFlowActions'), basic=getN('basicAITools'), stdA=getN('standardAITools'), prem=getN('premiumAITools'), monthly=getN('monthlyRuns');
+        const msgs = Math.round((classic*RATES.classic + gen*RATES.gen + agent*RATES.agent + graph*RATES.graph + flow*RATES.flow + basic*RATES.basic + stdA*RATES.std + prem*RATES.prem)*100)/100;
+        const m365pct=el('m365Users').checked? parseInt(el('m365PercentSlider').value)/100 : 0;
+        const freeRuns=Math.round(monthly*m365pct), billable=monthly-freeRuns;
+        const totalBill=Math.ceil(msgs*billable);
+        const packs= totalBill>0? Math.ceil(totalBill/PACK_SZ):0;
+        const costPacks=packs*PACK_P;
+        const costPaygo=totalBill*PAYGO;
+
+        // update table counts
+        el('classicAnswersCount').textContent=classic; el('classicAnswersMessages').textContent=Math.ceil(classic*RATES.classic);
+        el('generativeAnswersCount').textContent=gen; el('generativeAnswersMessages').textContent=Math.ceil(gen*RATES.gen);
+        el('agentActionsCount').textContent=agent; el('agentActionsMessages').textContent=Math.ceil(agent*RATES.agent);
+        el('tenantGraphCount').textContent=graph; el('tenantGraphMessages').textContent=Math.ceil(graph*RATES.graph);
+        el('agentFlowActionsCount').textContent=flow; el('agentFlowActionsMessages').textContent=Math.ceil(flow*RATES.flow);
+        el('basicAIToolsCount').textContent=basic; el('basicAIToolsMessages').textContent=Math.ceil(basic*RATES.basic);
+        el('standardAIToolsCount').textContent=stdA; el('standardAIToolsMessages').textContent=Math.ceil(stdA*RATES.std);
+        el('premiumAIToolsCount').textContent=prem; el('premiumAIToolsMessages').textContent=Math.ceil(prem*RATES.prem);
+        el('totalMessagesPerRun').textContent=Math.ceil(msgs);
+
+        // update summary cards
+        el('monthlyRunsDisplay').textContent=fmtNum(monthly,true);
+        el('m365RunsDisplay').textContent=fmtNum(freeRuns,true);
+        el('billableRunsDisplay').textContent=fmtNum(billable,true);
+        el('totalMonthlyMessages').textContent=fmtNum(totalBill,true);
+
+        el('messagePacksRequired').textContent=packs;
+        el('messagePackCost').textContent=fmtCurr(costPacks);
+        el('paygoMessages').textContent=fmtNum(totalBill,true);
+        el('paygoCost').textContent=fmtCurr(costPaygo);
+
+        // cost comparison
+        const comp=el('costComparison'); let html='';
+        if(totalBill===0){ html='<p style="text-align:center;color:var(--text-secondary)">Configure inputs to see estimates</p>';} else {
+          const payCheaper = costPaygo < costPacks;
+          const savings=Math.abs(costPacks-costPaygo);
+          const savText=savings>0.01? `<div class='savings'>Saves £${fmtCurr(savings)}</div>`: '';
+          const packDiv=`<div class='cost-option ${!payCheaper?'cheaper':'more-expensive'}'><strong>${!payCheaper?'Recommended Packs':'Packs'}</strong><br>£${fmtCurr(costPacks)}<br><small>(${packs} pack${packs!==1?'s':''})</small>${!payCheaper?savText:''}</div>`;
+          const payDiv=`<div class='cost-option ${payCheaper?'cheaper':'more-expensive'}'><strong>${payCheaper?'Recommended PAYG':'PAYG'}</strong><br>£${fmtCurr(costPaygo)}<br><small>(${fmtNum(totalBill,true)} msgs)</small>${payCheaper?savText:''}</div>`;
+          html = payCheaper? payDiv+packDiv : packDiv+payDiv;
+        }
+        comp.innerHTML=html;
+      }
+
+      // event listeners
+      ['classicAnswers','generativeAnswers','agentActions','tenantGraph','agentFlowActions','basicAITools','standardAITools','premiumAITools','monthlyRuns','m365PercentSlider'].forEach(id=>{
+        el(id).addEventListener('input',updateAll);
+      });
+      el('m365Users').addEventListener('change',function(){
+        document.getElementById('m365Percentage').style.display=this.checked?'block':'none';
+        document.getElementById('m365RunsCard').style.display=this.checked?'block':'none';
+        if(!this.checked){ el('m365PercentSlider').value=0; el('m365PercentValue').textContent='0%'; }
+        updateAll();
+      });
+
+      // initialize
+      updateAll();
+    })();
+  </script>
+</body>
+</html>
